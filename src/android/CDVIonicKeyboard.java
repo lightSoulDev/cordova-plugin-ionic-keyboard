@@ -28,6 +28,7 @@ public class CDVIonicKeyboard extends CordovaPlugin {
     private View rootView;
     private View mChildOfContent;
     private int usableHeightPrevious;
+    private int previosOrientation;
     private FrameLayout.LayoutParams frameLayoutParams;
 
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -38,7 +39,6 @@ public class CDVIonicKeyboard extends CordovaPlugin {
         if ("hide".equals(action)) {
             cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
-                    //http://stackoverflow.com/a/7696791/1091751
                     InputMethodManager inputManager = (InputMethodManager) cordova.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
                     View v = cordova.getActivity().getCurrentFocus();
 
@@ -124,16 +124,26 @@ public class CDVIonicKeyboard extends CordovaPlugin {
 
                         private void possiblyResizeChildOfContent() {
                             int usableHeightNow = computeUsableHeight();
+                            int orientationNow = computeOrientation();
                             if (usableHeightNow != usableHeightPrevious) {
                                 int usableHeightSansKeyboard = mChildOfContent.getRootView().getHeight();
                                 int heightDifference = usableHeightSansKeyboard - usableHeightNow;
-                                if (heightDifference > (usableHeightSansKeyboard/4)) {
-                                    frameLayoutParams.height = usableHeightSansKeyboard - heightDifference;
-                                } else {
-                                    frameLayoutParams.height = usableHeightSansKeyboard;
+                                int height = usableHeightNow;
+
+                                if (heightDifference < 0) {
+                                    height = usableHeightNow;
                                 }
+                                else if (heightDifference > (usableHeightSansKeyboard/4)) {
+                                    height = usableHeightSansKeyboard - heightDifference;
+                                } else {
+                                    height = usableHeightSansKeyboard;
+                                }
+
+                                frameLayoutParams.height = height;
+
                                 mChildOfContent.requestLayout();
                                 usableHeightPrevious = usableHeightNow;
+                                previosOrientation = orientationNow;
                             }
                         }
 
@@ -141,6 +151,17 @@ public class CDVIonicKeyboard extends CordovaPlugin {
                             Rect r = new Rect();
                             mChildOfContent.getWindowVisibleDisplayFrame(r);
                             return (r.bottom - r.top);
+                        }
+
+                        private int computeOrientation() {
+                            int h = mChildOfContent.getRootView().getHeight();
+                            int w = mChildOfContent.getRootView().getWidth();
+
+                            if(w < h){
+                                return 0;
+                            }else { 
+                                return 1;
+                            }
                         }
                     };
 
